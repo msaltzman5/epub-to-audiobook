@@ -19,4 +19,4 @@
     a. pdftotext man: https://www.xpdfreader.com/pdftotext-man.html  
 4. `python3 main.py`  
     a. this should clean txt file
-5. edge-tts --voice en-US-AndrewNeural --file <books_directory>/<book_cleaned.pdf> --write-media test.mp3
+5. `edge-tts --voice en-US-AndrewNeural --file <books_directory>/<book_cleaned.pdf> --write-media test.mp3`
