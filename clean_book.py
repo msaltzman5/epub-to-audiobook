@@ -9,7 +9,7 @@ def main():
 
     with open('books/zen/zen.txt', 'r', encoding='latin-1') as f:
         data = f.read()
-
+    
     cleaned_data = remove_c1_control_characters(data)
 
     with open('books/zen/zen_cleaned.txt', 'w') as f:
