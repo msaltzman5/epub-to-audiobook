@@ -14,6 +14,7 @@ def main():
             if os.path.exists(cleaned_txt_filepath):
                 print("file converted to txt")
                 # TODO: call edge-tss function on cleaned txt file
+                txt_to_speech(cleaned_txt_filepath)
             else:
                 print("txt failed to clean")
         else:
@@ -63,6 +64,41 @@ def clean_characters(filepath: str) -> str:
         f.write(cleaned_data)
 
     return f"{directory}_cleaned.txt"
+
+def txt_to_speech(filepath: str) -> str:
+    # edge-tts --voice en-US-AndrewNeural --file <books_directory>/<book_cleaned.pdf> --write-media test.mp3
+
+    directory, file = os.path.split(filepath)
+    new_file_name = file.replace("_cleaned.txt", ".mp3")
+
+    # result = subprocess.run(
+    #     [
+    #         'edge-tts',
+    #         '--voice',
+    #         'en-US-AndrewNeural',
+    #         '--file',
+    #         f'{filepath}',
+    #         '--write-media',
+    #         f'{directory}/{new_file_name}'
+    #     ],
+    #     capture_output=True,
+    #     text=True
+    # )
+
+    # Test
+    result = subprocess.run(
+        [
+            'edge-tts',
+            '--voice',
+            'en-US-AndrewNeural',
+            '--text',
+            'Hi! I would be really suprised if this was working.',
+            '--write-media',
+            'testing.mp3'
+        ],
+        capture_output=True,
+        text=True
+    )
 
 if __name__ == "__main__":
     main()
