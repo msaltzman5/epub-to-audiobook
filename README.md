@@ -7,8 +7,8 @@
 
 ## Activate environment
 `python -m venv .venv`  
-`source .venv/bin/activate`  
-`pip install edge-tts`  
+`source .venv/bin/activate` (or `.venv/Scripts/activate` on Windows)
+`pip install -r requirements.txt`  
 
 ## Usage
 `edge-tts --voice en-US-AndrewNeural --text "Hi! How are you?" --write-media test.mp3`
