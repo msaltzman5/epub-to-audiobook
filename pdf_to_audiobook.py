@@ -13,7 +13,6 @@ def main():
             cleaned_txt_filepath = clean_characters(txt_filepath)
             if os.path.exists(cleaned_txt_filepath):
                 print("file converted to txt")
-                # TODO: call edge-tss function on cleaned txt file
                 txt_to_speech(cleaned_txt_filepath)
             else:
                 print("txt failed to clean")
@@ -23,17 +22,35 @@ def main():
         print("file path does not exist. try again :)")
 
 def convert_pdf_to_text(filepath: str) -> str:
-    result = subprocess.run(
-        [
-            '/home/msaltzman/Downloads/xpdf-tools-linux-4.06/bin64/pdftotext',
-            '-marginb',
-            '90',
-            '-nopgbrk',
-            f'{filepath}'
-        ],
-        capture_output=True,
-        text=True
-    )
+
+    # Check to see what operating system this is running on
+    if sys.platform.__contains__("linux"):
+        result = subprocess.run(
+            [
+                'packages/xpdf-tools-linux-4.06/bin64/pdftotext',
+                '-marginb',
+                '90',
+                '-nopgbrk',
+                f'{filepath}'
+            ],
+            capture_output=True,
+            text=True
+        )
+    elif sys.platform.__contains__("win"):
+        result = subprocess.run(
+            [
+                'packages/xpdf-tools-win-4.06/bin64/pdftotext',
+                '-marginb',
+                '90',
+                '-nopgbrk',
+                f'{filepath}'
+            ],
+            capture_output=True,
+            text=True
+        )
+    else:
+        print("unknown OS")
+        return "uh oh"
 
     if result.returncode == 0:
         new_filepath = os.path.splitext(filepath)[0] + ".txt"
@@ -41,8 +58,7 @@ def convert_pdf_to_text(filepath: str) -> str:
     else: 
         return "uh oh"
 
-    return result.returncode == 0
-
+# TODO: fix this 
 def clean_characters(filepath: str) -> str:
 
     def remove_c1_control_characters(text):
@@ -66,39 +82,43 @@ def clean_characters(filepath: str) -> str:
     return f"{directory}_cleaned.txt"
 
 def txt_to_speech(filepath: str) -> str:
-    # edge-tts --voice en-US-AndrewNeural --file <books_directory>/<book_cleaned.pdf> --write-media test.mp3
 
     directory, file = os.path.split(filepath)
     new_file_name = file.replace("_cleaned.txt", ".mp3")
 
-    # result = subprocess.run(
-    #     [
-    #         'edge-tts',
-    #         '--voice',
-    #         'en-US-AndrewNeural',
-    #         '--file',
-    #         f'{filepath}',
-    #         '--write-media',
-    #         f'{directory}/{new_file_name}'
-    #     ],
-    #     capture_output=True,
-    #     text=True
-    # )
+    print(filepath)
+    print(f'{directory}/{new_file_name}')
 
-    # Test
     result = subprocess.run(
         [
             'edge-tts',
             '--voice',
             'en-US-AndrewNeural',
-            '--text',
-            'Hi! I would be really suprised if this was working.',
+            '--file',
+            f'{filepath}',
             '--write-media',
-            'testing.mp3'
+            f'{directory}/{new_file_name}'
         ],
         capture_output=True,
         text=True
     )
+
+    print(result.stderr)
+
+    # Test
+    # result = subprocess.run(
+    #     [
+    #         'edge-tts',
+    #         '--voice',
+    #         'en-US-AndrewNeural',
+    #         '--text',
+    #         'Hi! I would be really suprised if this was working. Is this working?',
+    #         '--write-media',
+    #         'testing.mp3'
+    #     ],
+    #     capture_output=True,
+    #     text=True
+    # )
 
 if __name__ == "__main__":
     main()
