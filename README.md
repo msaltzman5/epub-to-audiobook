@@ -10,7 +10,7 @@
 `pip install -r requirements.txt`  
 
 ## Usage
-`python pdf_to_audiobook.py <directory_to_pdf>/<pdf_name>.pdf
+`python pdf_to_audiobook.py <directory_to_pdf>/<pdf_name>.pdf`
 
 ## Test edge-tts
 `edge-tts --voice en-US-AndrewNeural --text "Hi! How are you?" --write-media test.mp3`
