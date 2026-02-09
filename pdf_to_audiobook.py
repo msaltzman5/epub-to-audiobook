@@ -103,6 +103,8 @@ def txt_to_speech(filepath: str) -> str:
         generate_speech(filepath, new_file_path)
     )
 
+    print(f"audiobook ready to listen to at {new_file_path}!")
+
     # result = subprocess.run(
     #     [
     #         'edge-tts',
@@ -124,7 +126,7 @@ def txt_to_speech(filepath: str) -> str:
     #     [
     #         'edge-tts',
     #         '--voice',
-    
+
     #         'en-US-AndrewNeural',
     #         '--text',
     #         'Hi! I would be really suprised if this was working. Is this working?',
