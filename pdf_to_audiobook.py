@@ -1,6 +1,8 @@
 import sys
 import os
 import subprocess
+import edge_tts
+import asyncio
 
 def main():
 
@@ -25,32 +27,27 @@ def convert_pdf_to_text(filepath: str) -> str:
 
     # Check to see what operating system this is running on
     if sys.platform.__contains__("linux"):
-        result = subprocess.run(
-            [
-                'packages/xpdf-tools-linux-4.06/bin64/pdftotext',
-                '-marginb',
-                '90',
-                '-nopgbrk',
-                f'{filepath}'
-            ],
-            capture_output=True,
-            text=True
-        )
+        package_command = 'packages/xpdf-tools-linux-4.06/bin64/pdftotext'
     elif sys.platform.__contains__("win"):
-        result = subprocess.run(
-            [
-                'packages/xpdf-tools-win-4.06/bin64/pdftotext',
-                '-marginb',
-                '90',
-                '-nopgbrk',
-                f'{filepath}'
-            ],
-            capture_output=True,
-            text=True
-        )
+        package_command = 'packages/xpdf-tools-win-4.06/bin64/pdftotext',
     else:
         print("unknown OS")
         return "uh oh"
+
+    # TODO: make it so you can configure multiple commands here
+    # 1. add command line arguments
+    # 2. some sort of input for loop
+    result = subprocess.run(
+        [
+            f'{package_command}',
+            '-marginb',
+            '90',
+            '-nopgbrk',
+            f'{filepath}'
+        ],
+        capture_output=True,
+        text=True
+    )
 
     if result.returncode == 0:
         new_filepath = os.path.splitext(filepath)[0] + ".txt"
@@ -58,7 +55,7 @@ def convert_pdf_to_text(filepath: str) -> str:
     else: 
         return "uh oh"
 
-# TODO: fix this 
+# TODO: fix this on windows
 def clean_characters(filepath: str) -> str:
 
     def remove_c1_control_characters(text):
@@ -83,33 +80,50 @@ def clean_characters(filepath: str) -> str:
 
 def txt_to_speech(filepath: str) -> str:
 
+    async def generate_speech(input_file: str, output_file: str):
+        with open(input_file, "r", encoding="utf-8") as file:
+            text = file.read()
+        voice = 'en-US-AndrewNeural'
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_file)
+
     directory, file = os.path.split(filepath)
     new_file_name = file.replace("_cleaned.txt", ".mp3")
+    new_file_path = f'{directory}/{new_file_name}'
 
     print(filepath)
-    print(f'{directory}/{new_file_name}')
+    print(new_file_path)
 
-    result = subprocess.run(
-        [
-            'edge-tts',
-            '--voice',
-            'en-US-AndrewNeural',
-            '--file',
-            f'{filepath}',
-            '--write-media',
-            f'{directory}/{new_file_name}'
-        ],
-        capture_output=True,
-        text=True
+    print(f"converting {filepath.replace("_cleaned.txt", ".pdf")} to audiobook!")
+
+    asyncio.run(
+        generate_speech(filepath, new_file_path)
     )
 
-    print(result.stderr)
+    print(f"audiobook ready to listen to at {new_file_path}!")
+
+    # result = subprocess.run(
+    #     [
+    #         'edge-tts',
+    #         '--voice',
+    #         'en-US-AndrewNeural',
+    #         '--file',
+    #         f'{filepath}',
+    #         '--write-media',
+    #         f'{directory}/{new_file_name}'
+    #     ],
+    #     capture_output=True,
+    #     text=True
+    # )
+
+    # print(result.stderr)
 
     # Test
     # result = subprocess.run(
     #     [
     #         'edge-tts',
     #         '--voice',
+
     #         'en-US-AndrewNeural',
     #         '--text',
     #         'Hi! I would be really suprised if this was working. Is this working?',
