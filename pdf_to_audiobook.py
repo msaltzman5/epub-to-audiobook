@@ -34,7 +34,9 @@ def convert_pdf_to_text(filepath: str) -> str:
         print("unknown OS")
         return "uh oh"
 
-    # TODO: make it so you can configure  
+    # TODO: make it so you can configure multiple commands here
+    # 1. add command line arguments
+    # 2. some sort of input for loop
     result = subprocess.run(
         [
             f'{package_command}',
