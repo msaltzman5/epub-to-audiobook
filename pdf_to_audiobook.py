@@ -27,32 +27,25 @@ def convert_pdf_to_text(filepath: str) -> str:
 
     # Check to see what operating system this is running on
     if sys.platform.__contains__("linux"):
-        result = subprocess.run(
-            [
-                'packages/xpdf-tools-linux-4.06/bin64/pdftotext',
-                '-marginb',
-                '90',
-                '-nopgbrk',
-                f'{filepath}'
-            ],
-            capture_output=True,
-            text=True
-        )
+        package_command = 'packages/xpdf-tools-linux-4.06/bin64/pdftotext'
     elif sys.platform.__contains__("win"):
-        result = subprocess.run(
-            [
-                'packages/xpdf-tools-win-4.06/bin64/pdftotext',
-                '-marginb',
-                '90',
-                '-nopgbrk',
-                f'{filepath}'
-            ],
-            capture_output=True,
-            text=True
-        )
+        package_command = 'packages/xpdf-tools-win-4.06/bin64/pdftotext',
     else:
         print("unknown OS")
         return "uh oh"
+
+    # TODO: make it so you can configure  
+    result = subprocess.run(
+        [
+            f'{package_command}',
+            '-marginb',
+            '90',
+            '-nopgbrk',
+            f'{filepath}'
+        ],
+        capture_output=True,
+        text=True
+    )
 
     if result.returncode == 0:
         new_filepath = os.path.splitext(filepath)[0] + ".txt"
@@ -98,6 +91,8 @@ def txt_to_speech(filepath: str) -> str:
 
     print(filepath)
     print(new_file_path)
+
+    print(f"converting {filepath.replace("_cleaned.txt", ".pdf")} to audiobook!")
 
     asyncio.run(
         generate_speech(filepath, new_file_path)
