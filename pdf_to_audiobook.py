@@ -37,6 +37,7 @@ def convert_pdf_to_text(filepath: str) -> str:
     # TODO: make it so you can configure multiple commands here
     # 1. add command line arguments
     # 2. some sort of input for loop
+    # 3. find a better way to determine text without page numbers
     result = subprocess.run(
         [
             f'{package_command}',
