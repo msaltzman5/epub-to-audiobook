@@ -4,57 +4,102 @@ import subprocess
 import edge_tts
 import asyncio
 
+
+def prompt_int(prompt: str, default: int = 0) -> int:
+    value = input(f"{prompt} [{default}]: ").strip()
+    return int(value) if value else default
+
+def prompt_bool(prompt: str, default: bool = True) -> bool:
+    suffix = "Y/n" if default else "y/N"
+    value = input(f"{prompt} ({suffix}): ").strip().lower()
+
+    if not value:
+        return default
+    return value in ("y", "yes")
+
 def main():
+    if len(sys.argv) < 2:
+        print("Usage: python main.py <input.pdf>")
+        sys.exit(1)
 
     input_filepath = sys.argv[1]
 
-    if os.path.exists(input_filepath):
-        print("exists")
-        txt_filepath = convert_pdf_to_text(input_filepath)
-        if os.path.exists(txt_filepath):
-            cleaned_txt_filepath = clean_characters(txt_filepath)
-            if os.path.exists(cleaned_txt_filepath):
-                print("file converted to txt")
-                txt_to_speech(cleaned_txt_filepath)
-            else:
-                print("txt failed to clean")
+    if not os.path.exists(input_filepath):
+        print("File path does not exist. try again :)")
+        sys.exit(1)
+
+    print("\n=== Manual Margin Configuration ===\n")
+    margins = {
+        "top": prompt_int("Top margin", 0),
+        "bottom": prompt_int("Bottom margin", 0),
+        "left": prompt_int("Left margin", 0),
+        "right": prompt_int("Right margin", 0),
+    }
+
+    include_page_breaks = prompt_bool("Include page breaks?", default=False)
+
+    print("\nRunning conversion with settings:")
+    for k, v in margins.items():
+        print(f"  {k.capitalize():<6}: {v}")
+    print(f"  Page breaks: {'ON' if include_page_breaks else 'OFF'}\n")
+
+    txt_filepath = convert_pdf_to_text(
+        filepath=input_filepath,
+        margins=margins,
+        include_page_breaks=include_page_breaks
+    )
+
+    if os.path.exists(txt_filepath):
+        cleaned_txt_filepath = clean_characters(txt_filepath)
+        if os.path.exists(cleaned_txt_filepath):
+            print("✅ File converted to txt")
+            txt_to_speech(cleaned_txt_filepath)
         else:
-            print("file failed to convert to txt D:")
+            print("❌ TXT failed to clean")
     else:
-        print("file path does not exist. try again :)")
+        print("❌ File failed to convert to txt")
 
-def convert_pdf_to_text(filepath: str) -> str:
+def convert_pdf_to_text(filepath: str, margins: dict, include_page_breaks: bool) -> str:
 
-    # Check to see what operating system this is running on
-    if sys.platform.__contains__("linux"):
-        package_command = 'packages/xpdf-tools-linux-4.06/bin64/pdftotext'
-    elif sys.platform.__contains__("win"):
-        package_command = 'packages/xpdf-tools-win-4.06/bin64/pdftotext',
+    if "linux" in sys.platform:
+        package_command = "packages/xpdf-tools-linux-4.06/bin64/pdftotext"
+    elif "win" in sys.platform:
+        package_command = "packages/xpdf-tools-win-4.06/bin64/pdftotext.exe"
     else:
         print("unknown OS")
         return "uh oh"
 
-    # TODO: make it so you can configure multiple commands here
-    # 1. add command line arguments
-    # 2. some sort of input for loop
-    # 3. find a better way to determine text without page numbers
+    command = [package_command]
+
+    # ---- Margin loop ----
+    margin_flags = {
+        "top": "-margint",
+        "bottom": "-marginb",
+        "left": "-marginl",
+        "right": "-marginr",
+    }
+
+    for side, value in margins.items():
+        if value > 0:
+            command.extend([margin_flags[side], str(value)])
+
+    # ---- Page break handling ----
+    if not include_page_breaks:
+        command.append("-nopgbrk")
+
+    command.append(filepath)
+
     result = subprocess.run(
-        [
-            f'{package_command}',
-            '-marginb',
-            '90',
-            '-nopgbrk',
-            f'{filepath}'
-        ],
+        command,
         capture_output=True,
         text=True
     )
 
     if result.returncode == 0:
-        new_filepath = os.path.splitext(filepath)[0] + ".txt"
-        return new_filepath
-    else: 
-        return "uh oh"
+        return os.path.splitext(filepath)[0] + ".txt"
+
+    print(result.stderr)
+    return "uh oh"
 
 # TODO: fix this on windows
 def clean_characters(filepath: str) -> str:
