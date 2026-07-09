@@ -1,0 +1,9 @@
+# epub-to-audiobook
+
+## How I want to do this:
+Since we're doing books, the text will be extremely formatted.
+For each page, I want to
+1. get the dimensions of the text
+2. crop the image
+3. run OCR on text
+4. convert this to .mp4 file
