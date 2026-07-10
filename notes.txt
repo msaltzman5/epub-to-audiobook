@@ -13,4 +13,7 @@ Helpful: https://www.nutrient.io/blog/how-to-use-tesseract-ocr-in-python/
 Testing
 sudo apt install tesseract-ocr
 tesseract --version
-pip install pytesseract pillow pymupdf
+pip install pytesseract opencv-python
+
+other stuff I tried
+pillow pymupdf image2pdf
