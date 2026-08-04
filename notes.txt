@@ -11,6 +11,12 @@ For each page, I want to
  
 Helpful: https://www.nutrient.io/blog/how-to-use-tesseract-ocr-in-python/
 Testing
-sudo apt install tesseract-ocr
+Linux: sudo apt install tesseract-ocr
+Windows: Download tesseract.exe, run it, add C:\Program Files\Tesseract-OCR to your PATH environment variable
 tesseract --version
-pip install pytesseract pillow pymupdf
+pip install pytesseract pillow pymupdf image2pdf
+
+## Doctr
+https://mindee.github.io/doctr/
+https://github.com/mindee/doctr
+pip install python-doctr matplotlib mplcursors
