@@ -14,9 +14,15 @@ Testing
 Linux: sudo apt install tesseract-ocr
 Windows: Download tesseract.exe, run it, add C:\Program Files\Tesseract-OCR to your PATH environment variable
 tesseract --version
-pip install pytesseract pillow pymupdf image2pdf
+pip install pytesseract
+other stuff I tried
+pillow pymupdf image2pdf
 
 ## Doctr
 https://mindee.github.io/doctr/
 https://github.com/mindee/doctr
 pip install python-doctr matplotlib mplcursors
+pip install pytesseract opencv-python
+
+other stuff I tried
+pillow pymupdf image2pdf
