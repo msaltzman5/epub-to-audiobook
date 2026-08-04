@@ -23,6 +23,3 @@ https://mindee.github.io/doctr/
 https://github.com/mindee/doctr
 pip install python-doctr matplotlib mplcursors
 pip install pytesseract opencv-python
-
-other stuff I tried
-pillow pymupdf image2pdf
