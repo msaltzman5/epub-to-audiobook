@@ -1,25 +1,99 @@
-# epub-to-audiobook
+# book2audio
+
+A simple, non-AI EPUB/PDF text extraction and cleanup pipeline designed for audiobook generation.
+
+## What it does
+
+- EPUB: parses XHTML directly instead of OCR.
+- PDF: uses the PDF text layer when available.
+- PDF fallback: optional Tesseract OCR with word bounding boxes.
+- Detects repeated headers/footers.
+- Detects likely page numbers using position, repetition, numeric shape, and sequence.
+- Reconstructs paragraphs from PDF blocks/lines.
+- Repairs common line-end hyphenation.
+- Produces clean TXT plus a JSON diagnostics report.
+- No AI calls.
+
+PyMuPDF exposes PDF blocks/words with bounding boxes, which is why the PDF cleaner is layout-aware rather than a regex over one giant string.
 
 ## Install
-`python`  
-`pip`  
 
-## Activate environment
-`python -m venv .venv`  
-`source .venv/bin/activate` (or `.venv\Scripts\activate` on Windows)  
-`pip install -r requirements.txt`  
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+
+pip install -e .
+```
+
+For OCR support:
+
+```bash
+pip install -e ".[ocr]"
+```
+
+You also need the Tesseract executable installed on your operating system and available on PATH.
 
 ## Usage
-`python pdf_to_audiobook.py <directory_to_pdf>/<pdf_name>.pdf`
 
-## Test edge-tts
-`edge-tts --voice en-US-AndrewNeural --text "Hi! How are you?" --write-media test.mp3`
+EPUB:
 
-## pdf to text
-1. Download Xpdf command line tools from https://www.xpdfreader.com/download.html  
-2. Unzip download so you can execute the binaries  
-3. `/home/msaltzman/Downloads/xpdf-tools-linux-4.06/bin64/pdftotext -marginb 90 -nopgbrk books/zen/zen.pdf`  
-    a. pdftotext man: https://www.xpdfreader.com/pdftotext-man.html  
-4. `python3 clean_book.py`  
-    a. this should clean txt file
-5. `edge-tts --voice en-US-AndrewNeural --file <books_directory>/<book_cleaned.pdf> --write-media test.mp3`
+```bash
+book2audio book.epub -o output
+```
+
+PDF:
+
+```bash
+book2audio book.pdf -o output
+```
+
+Force OCR:
+
+```bash
+book2audio scanned.pdf -o output --ocr
+```
+
+Specify OCR language:
+
+```bash
+book2audio scanned.pdf -o output --ocr --ocr-lang eng
+```
+
+Useful tuning:
+
+```bash
+book2audio book.pdf -o output \
+  --header-footer-min-pages 5 \
+  --header-footer-min-frequency 0.45
+```
+
+The output directory contains:
+
+- `book.txt` — cleaned text suitable for TTS.
+- `report.json` — extraction and cleanup diagnostics.
+
+## Important limitation
+
+This is deliberately conservative. It is intended to remove high-confidence page furniture without deleting legitimate book content. No generic extractor can perfectly understand every publisher's layout. The diagnostics report makes questionable cases visible so thresholds can be tuned.
+
+## Architecture
+
+```text
+EPUB ──> XHTML parser ───────────────┐
+                                     │
+PDF ──> text layer / OCR + geometry ─┤
+                                     v
+                             document model
+                                     |
+                             artifact profiling
+                                     |
+                          paragraph reconstruction
+                                     |
+                              text normalization
+                                     |
+                               book.txt + report
+                                     |
+                                     v
+                                    TTS
+```
