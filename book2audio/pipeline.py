@@ -59,7 +59,27 @@ def process(
         encoding="utf-8",
     )
 
+    # Generate tts
+    import asyncio
+    
+    asyncio.run(
+        _generate_speech(text, (output_dir / "book.mp3"))
+    )
+
     return book
+
+async def _generate_speech(text: str, output_file: str):
+    try:
+        import edge_tts
+    except ImportError as exc:
+        raise RuntimeError(
+            "edge-tts and asyncio required"
+            "Install with: pip install edge-tts"
+        ) from exc
+
+    voice = 'en-US-AndrewNeural'
+    communicate = edge_tts.Communicate(text, voice)
+    await communicate.save(output_file)
 
 
 def render_text(book: Book) -> str:

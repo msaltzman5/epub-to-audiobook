@@ -1,4 +1,4 @@
 .venv
-books/**/*.mp3
+*.mp3
 __pycache__
 book2audio.egg-info

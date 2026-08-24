@@ -41,8 +41,10 @@ def extract_pdf_text(path: str | Path, force_ocr: bool = False, ocr_lang: str = 
 
         if force_ocr or text_chars < 40:
             page_model = _ocr_page(page, page_no, ocr_lang)
+            # print(f"ocr-ing page {page_no}")
         else:
             page_model = _page_from_blocks(page_no, rect.width, rect.height, blocks)
+            # print(f"text-ing page {page_no}")
 
         pages.append(page_model)
 

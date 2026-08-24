@@ -26,6 +26,12 @@ python -m venv .venv
 pip install -e .
 ```
 
+You also need the edge-tts pip install.
+
+```bash
+pip install edge-tts
+```
+
 For OCR support:
 
 ```bash
@@ -33,6 +39,10 @@ pip install -e ".[ocr]"
 ```
 
 You also need the Tesseract executable installed on your operating system and available on PATH.
+
+```bash
+sudo pacman -S tesseract tesseract-data-eng
+```
 
 ## Usage
 
