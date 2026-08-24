@@ -26,10 +26,12 @@ python -m venv .venv
 pip install -e .
 ```
 
-You also need the edge-tts pip install.
+You also need the edge-tts or piper pip install.
 
 ```bash
-pip install edge-tts
+pip install edge-tts  
+pip install piper-tts  
+python -m piper.download_voices en_US-kusal-medium # select your own model
 ```
 
 For OCR support:

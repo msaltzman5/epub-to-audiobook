@@ -59,15 +59,25 @@ def process(
         encoding="utf-8",
     )
 
-    # Generate tts
-    import asyncio
+    # Edge-tts
+    # import asyncio
     
-    asyncio.run(
-        _generate_speech(text, (output_dir / "book.mp3"))
-    )
+    # asyncio.run(
+    #     _generate_speech(text, (output_dir / "book.mp3"))
+    # )
+
+    # piper-tts
+    import wave
+    from piper import PiperVoice
+    voice = PiperVoice.load("en_US-kusal-medium.onnx")
+    path = str((output_dir / "book.wav"))
+    print(path)
+    with wave.open(str(output_dir / "book.wav"), "wb") as wav_file:
+        voice.synthesize_wav(text, wav_file)
 
     return book
 
+# Edge-tts
 async def _generate_speech(text: str, output_file: str):
     try:
         import edge_tts
