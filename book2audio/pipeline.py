@@ -67,6 +67,7 @@ def process(
     # )
 
     # piper-tts
+    # next: gpu acceleration
     import wave
     from piper import PiperVoice
     voice = PiperVoice.load("en_US-kusal-medium.onnx")
