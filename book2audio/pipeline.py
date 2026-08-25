@@ -71,6 +71,7 @@ def process(
     import wave
     from piper import PiperVoice
     voice = PiperVoice.load("en_US-kusal-medium.onnx")
+    # voice = PiperVoice.load("en_US-kusal-medium.onnx", use_cuda=True)
     path = str((output_dir / "book.wav"))
     print(path)
     with wave.open(str(output_dir / "book.wav"), "wb") as wav_file:

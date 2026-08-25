@@ -30,8 +30,17 @@ You also need the edge-tts or piper pip install.
 
 ```bash
 pip install edge-tts  
-pip install piper-tts  
+pip install piper-tts
 python -m piper.download_voices en_US-kusal-medium # select your own model
+```
+
+For gpu support on my desktop. https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements
+I think what I'll have to do is downgrade by global cuda on my desktop from 13.3 to 12.8 to be compadible
+
+```bash
+pip install onnxruntime-gpu==1.24.1
+pip install cuda-toolkit==12.8.0
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128   
 ```
 
 For OCR support:
