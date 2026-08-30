@@ -2,4 +2,5 @@
 *.mp3
 *.wav
 __pycache__
-book2audio.egg-info
+# testing
+piper-voices

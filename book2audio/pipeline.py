@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Iterator
 
 from .epub import extract_epub
 from .pdf import extract_pdf_text
 from .pdf_clean import pdf_to_sections
-from .models import Book
+from .models import Book, Chapter
+from .utils import safe_filename
 
 
 def process(
@@ -18,6 +20,13 @@ def process(
     min_edge_pages: int = 5,
     min_edge_frequency: float = 0.45,
 ) -> Book:
+    """Extract and clean ``input_path`` (EPUB or PDF).
+
+    Writes ``book.txt``, ``report.json`` and (for multi-chapter books) one
+    ``NN - Title.txt`` per chapter into ``output_dir``, then returns the parsed
+    :class:`Book`. Audio generation is handled separately by
+    :func:`book2audio.tts.synthesize_book`.
+    """
     input_path = Path(input_path)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -36,7 +45,7 @@ def process(
         )
         book = Book(
             title=input_path.stem,
-            sections=sections,
+            chapters=[Chapter(title=None, sections=sections)],
             metadata={"format": "pdf", "source": str(input_path)},
             diagnostics=diagnostics,
         )
@@ -46,10 +55,19 @@ def process(
     text = render_text(book)
     (output_dir / "book.txt").write_text(text, encoding="utf-8")
 
+    chapter_outputs = list(iter_chapter_outputs(book))
+    if len(chapter_outputs) > 1:
+        for stem, _title, chapter_text in chapter_outputs:
+            (output_dir / f"{stem}.txt").write_text(chapter_text, encoding="utf-8")
+
     report = {
         "title": book.title,
         "metadata": book.metadata,
         "diagnostics": book.diagnostics,
+        "chapters": [
+            {"index": i, "title": title, "characters": len(chapter_text), "file": f"{stem}.txt"}
+            for i, (stem, title, chapter_text) in enumerate(chapter_outputs, 1)
+        ],
         "sections": len(book.sections),
         "paragraphs": sum(len(s.paragraphs) for s in book.sections),
         "characters": len(text),
@@ -59,50 +77,33 @@ def process(
         encoding="utf-8",
     )
 
-    # Edge-tts
-    # import asyncio
-    
-    # asyncio.run(
-    #     _generate_speech(text, (output_dir / "book.mp3"))
-    # )
-
-    # piper-tts
-    # next: gpu acceleration
-    import wave
-    from piper import PiperVoice
-    voice = PiperVoice.load("en_US-kusal-medium.onnx")
-    # voice = PiperVoice.load("en_US-kusal-medium.onnx", use_cuda=True)
-    path = str((output_dir / "book.wav"))
-    print(path)
-    with wave.open(str(output_dir / "book.wav"), "wb") as wav_file:
-        voice.synthesize_wav(text, wav_file)
-
     return book
 
-# Edge-tts
-async def _generate_speech(text: str, output_file: str):
-    try:
-        import edge_tts
-    except ImportError as exc:
-        raise RuntimeError(
-            "edge-tts and asyncio required"
-            "Install with: pip install edge-tts"
-        ) from exc
 
-    voice = 'en-US-AndrewNeural'
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(output_file)
+def iter_chapter_outputs(book: Book) -> Iterator[tuple[str, str, str]]:
+    """Yield ``(file_stem, title, text)`` for each chapter of ``book``."""
+    total = len(book.chapters)
+    for i, chapter in enumerate(book.chapters, 1):
+        title = chapter.title or f"Part {i:02d}"
+        stem = "book" if total <= 1 else f"{i:02d} - {safe_filename(title)}"
+        yield stem, title, render_chapter(chapter)
 
 
-def render_text(book: Book) -> str:
+def render_chapter(chapter: Chapter) -> str:
     chunks: list[str] = []
-
-    if book.title:
-        chunks.append(book.title)
-
-    for section in book.sections:
+    if chapter.title:
+        chunks.append(chapter.title)
+    for section in chapter.sections:
         if section.title:
             chunks.append(section.title)
         chunks.extend(section.paragraphs)
-
     return "\n\n".join(x.strip() for x in chunks if x and x.strip()) + "\n"
+
+
+def render_text(book: Book) -> str:
+    parts: list[str] = []
+    if book.title:
+        parts.append(book.title)
+    for chapter in book.chapters:
+        parts.append(render_chapter(chapter))
+    return "\n\n".join(p.strip() for p in parts if p and p.strip()) + "\n"

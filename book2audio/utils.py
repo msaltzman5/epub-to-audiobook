@@ -48,6 +48,14 @@ def clean_prose(text: str) -> str:
     return text.strip()
 
 
+def safe_filename(text: str, max_len: int = 60) -> str:
+    """A filesystem-safe version of ``text`` for use as a file name stem."""
+    text = normalize_space(text)
+    text = re.sub(r"[^\w .\-]", "", text, flags=re.UNICODE)
+    text = re.sub(r"\s+", " ", text).strip(" .")
+    return text[:max_len].strip(" .") or "untitled"
+
+
 def looks_like_heading(text: str) -> bool:
     s = normalize_space(text)
     if not s or len(s) > 160:

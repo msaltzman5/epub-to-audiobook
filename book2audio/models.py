@@ -68,8 +68,34 @@ class Section:
 
 
 @dataclass
-class Book:
+class Chapter:
+    """A logical division of a book (preface, introduction, a chapter, ...).
+
+    Each chapter becomes one audio file. For EPUBs it maps to a table-of-contents
+    entry; for PDFs the whole book is a single chapter.
+    """
+
     title: str | None
     sections: list[Section] = field(default_factory=list)
+
+    @property
+    def paragraphs(self) -> list[str]:
+        out: list[str] = []
+        for s in self.sections:
+            out.extend(s.paragraphs)
+        return out
+
+
+@dataclass
+class Book:
+    title: str | None
+    chapters: list[Chapter] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     diagnostics: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def sections(self) -> list[Section]:
+        out: list[Section] = []
+        for c in self.chapters:
+            out.extend(c.sections)
+        return out
