@@ -1,2 +1,6 @@
 .venv
-books/**/*.mp3
+*.mp3
+*.wav
+__pycache__
+# testing
+piper-voices
