@@ -23,13 +23,14 @@ def process(
     """Extract and clean ``input_path`` (EPUB or PDF).
 
     Writes ``book.txt``, ``report.json`` and (for multi-chapter books) one
-    ``NN - Title.txt`` per chapter into ``output_dir``, then returns the parsed
-    :class:`Book`. Audio generation is handled separately by
-    :func:`book2audio.tts.synthesize_book`.
+    ``NN - Title.txt`` per chapter into ``output_dir/debug``, then returns the
+    parsed :class:`Book`. Audio generation is handled separately by
+    :func:`book2audio.tts.synthesize_book` and stays in ``output_dir`` itself.
     """
     input_path = Path(input_path)
     output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    debug_dir = output_dir / "debug"
+    debug_dir.mkdir(parents=True, exist_ok=True)
 
     suffix = input_path.suffix.lower()
 
@@ -53,26 +54,26 @@ def process(
         raise ValueError(f"Unsupported input format: {suffix}. Use .pdf or .epub.")
 
     text = render_text(book)
-    (output_dir / "book.txt").write_text(text, encoding="utf-8")
+    (debug_dir / "book.txt").write_text(text, encoding="utf-8")
 
     chapter_outputs = list(iter_chapter_outputs(book))
     if len(chapter_outputs) > 1:
         for stem, _title, chapter_text in chapter_outputs:
-            (output_dir / f"{stem}.txt").write_text(chapter_text, encoding="utf-8")
+            (debug_dir / f"{stem}.txt").write_text(chapter_text, encoding="utf-8")
 
     report = {
         "title": book.title,
         "metadata": book.metadata,
         "diagnostics": book.diagnostics,
         "chapters": [
-            {"index": i, "title": title, "characters": len(chapter_text), "file": f"{stem}.txt"}
+            {"index": i, "title": title, "characters": len(chapter_text), "file": f"debug/{stem}.txt"}
             for i, (stem, title, chapter_text) in enumerate(chapter_outputs, 1)
         ],
         "sections": len(book.sections),
         "paragraphs": sum(len(s.paragraphs) for s in book.sections),
         "characters": len(text),
     }
-    (output_dir / "report.json").write_text(
+    (debug_dir / "report.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )

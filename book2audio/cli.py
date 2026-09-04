@@ -87,8 +87,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"Title:    {book.title}")
     print(f"Chapters: {len(book.chapters)}")
-    print(f"Text:     {args.output / 'book.txt'}")
-    print(f"Report:   {args.output / 'report.json'}")
+    print(f"Text:     {args.output / 'debug' / 'book.txt'}")
+    print(f"Report:   {args.output / 'debug' / 'report.json'}")
 
     chapter_outputs = list(iter_chapter_outputs(book))
     if args.single_file or len(chapter_outputs) <= 1:

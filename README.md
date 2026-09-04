@@ -10,7 +10,7 @@ into clean text and a spoken audio file.
 - **PDF fallback:** optional Tesseract OCR with word bounding boxes.
 - Detects repeated headers/footers and likely page numbers and removes them.
 - Reconstructs paragraphs from PDF blocks/lines and repairs line-end hyphenation.
-- Writes clean `book.txt` plus a `report.json` diagnostics file.
+- Writes clean `debug/book.txt` plus a `debug/report.json` diagnostics file.
 - Generates `book.wav` (Piper) or `book.mp3` (edge-tts).
 - No AI calls.
 
@@ -44,13 +44,16 @@ python book2audio.py book.pdf  -o output
 
 The output directory gets:
 
-- `book.txt` — the whole book as cleaned text.
-- `report.json` — extraction and cleanup diagnostics, including the chapter list.
 - One audio file **per chapter** for EPUBs — `01 - Preface.wav`, `02 - Introduction.wav`,
-  `03 - Birth of a NERD.wav`, ... (`.mp3` with `--tts edge`), plus a matching
-  `NN - Title.txt` for each.
+  `03 - Birth of a NERD.wav`, ... (`.mp3` with `--tts edge`).
 - A single `book.wav` when there is only one chapter (all PDFs), or when you pass
   `--single-file`.
+
+A `debug/` subfolder holds the text and diagnostics:
+
+- `debug/book.txt` — the whole book as cleaned text.
+- `debug/report.json` — extraction and cleanup diagnostics, including the chapter list.
+- `debug/NN - Title.txt` — one per chapter, matching the per-chapter audio files.
 
 Chapters come from the EPUB's table of contents. Numbered sub-entries (`I`, `II`,
 `3.`, ...) are folded into the titled part above them, so a book with parts like
@@ -75,7 +78,7 @@ eight. PDFs are always one file.
 Examples:
 
 ```bash
-# Text only, no audio (also writes the per-chapter .txt files)
+# Text only, no audio (also writes the per-chapter debug/*.txt files)
 python book2audio.py book.epub -o output --tts none
 
 # One combined audio file instead of one per chapter
@@ -121,7 +124,7 @@ https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requ
 book2audio.py            script you run
 book2audio/              the package
   cli.py                 argument parsing, ties the steps together
-  pipeline.py            process(): extract -> clean -> write book.txt + chapter files
+  pipeline.py            process(): extract -> clean -> write debug/book.txt + chapter files
   epub.py                EPUB XHTML extraction + table-of-contents chapter grouping
   pdf.py                 PDF text-layer / OCR extraction
   artifacts.py           header / footer / page-number detection
@@ -148,7 +151,7 @@ PDF ──> text layer / OCR + geometry ─┤
                                      │
                         chapter grouping (EPUB table of contents)
                                      │
-                       book.txt + report.json + per-chapter .txt
+                    debug/ : book.txt + report.json + per-chapter .txt
                                      │
                                      v
                      TTS  ->  one .wav / .mp3 per chapter
