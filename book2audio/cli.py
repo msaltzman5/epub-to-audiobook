@@ -72,9 +72,10 @@ def build_parser() -> argparse.ArgumentParser:
     tts.add_argument(
         "--m4b",
         action=argparse.BooleanOptionalAction,
-        default=None,
+        default=True,
         help="Also combine the generated audio into one chaptered .m4b audiobook "
-        "(requires ffmpeg). On by default unless --tts none; use --no-m4b to skip.",
+        "(requires ffmpeg; skipped automatically if ffmpeg isn't found). "
+        "On by default; use --no-m4b to skip without checking for ffmpeg.",
     )
     return p
 
@@ -110,23 +111,37 @@ def main(argv: list[str] | None = None) -> int:
 
     paths = synthesize_book(
         [(stem, text) for stem, _title, text in labeled_jobs],
-        args.output,
+        args.output / "debug",
         engine=args.tts,
         model=args.model,
         voice=args.voice,
         use_cuda=args.cuda,
     )
-    for path in paths:
-        print(f"Audio:    {path}")
 
-    build_m4b = args.m4b if args.m4b is not None else args.tts != "none"
-    if build_m4b:
+    m4b_built = False
+    if args.m4b:
         if not paths:
-            raise SystemExit("--m4b requires audio output; pass --tts piper or --tts edge.")
+            raise SystemExit(
+                "No audio was generated, so there's nothing to combine into a .m4b. "
+                "Use --tts piper or --tts edge, or pass --no-m4b."
+            )
         titles = [title for _stem, title, _text in labeled_jobs]
         m4b_path = args.output / f"{safe_filename(book.title or args.input.stem)}.m4b"
-        combine_to_m4b(paths, titles, m4b_path)
-        print(f"M4B:      {m4b_path}")
+        try:
+            combine_to_m4b(paths, titles, m4b_path)
+        except RuntimeError as exc:
+            print(f"M4B:      skipped - {exc}")
+        else:
+            print(f"M4B:      {m4b_path}")
+            m4b_built = True
+
+    if paths and not m4b_built:
+        # No .m4b was produced, so the per-chapter audio is the deliverable --
+        # keep it in the main output directory instead of debug/.
+        paths = [path.rename(args.output / path.name) for path in paths]
+
+    for path in paths:
+        print(f"Audio:    {path}")
 
     return 0
 

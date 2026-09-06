@@ -45,16 +45,20 @@ python book2audio.py book.pdf  -o output
 
 The output directory gets:
 
-- One audio file **per chapter** for EPUBs — `01 - Preface.wav`, `02 - Introduction.wav`,
-  `03 - Birth of a NERD.wav`, ... (`.mp3` with `--tts edge`).
-- A single `book.wav` when there is only one chapter (all PDFs), or when you pass
-  `--single-file`.
+- `<Book Title>.m4b` — one chaptered audiobook combining every chapter (unless
+  you pass `--no-m4b`; see "M4B audiobook" below).
 
-A `debug/` subfolder holds the text and diagnostics:
+A `debug/` subfolder holds the text, diagnostics, and the raw per-chapter audio
+that went into the `.m4b`:
 
 - `debug/book.txt` — the whole book as cleaned text.
 - `debug/report.json` — extraction and cleanup diagnostics, including the chapter list.
 - `debug/NN - Title.txt` — one per chapter, matching the per-chapter audio files.
+- One audio file **per chapter** for EPUBs — `debug/01 - Preface.wav`,
+  `debug/02 - Introduction.wav`, `debug/03 - Birth of a NERD.wav`, ... (`.mp3`
+  with `--tts edge`).
+- A single `debug/book.wav` when there is only one chapter (all PDFs), or when
+  you pass `--single-file`.
 
 Chapters come from the EPUB's table of contents. Numbered sub-entries (`I`, `II`,
 `3.`, ...) are folded into the titled part above them, so a book with parts like
@@ -103,11 +107,15 @@ python book2audio.py book.epub -o output --no-m4b
 
 ## M4B audiobook
 
-Whenever audio is generated, book2audio also combines the per-chapter files
-into a single chaptered `.m4b` (each chapter file becomes one chapter marker),
-written to `output/<Book Title>.m4b`. It works with either TTS engine and with
-`--single-file` (in which case the `.m4b` has one chapter). Pass `--no-m4b` to
-skip it and keep only the per-chapter `.wav`/`.mp3` files.
+Whenever audio is generated, book2audio also combines the per-chapter
+`debug/*.wav`/`.mp3` files into a single chaptered `.m4b` (each chapter file
+becomes one chapter marker), written to `output/<Book Title>.m4b`. It works
+with either TTS engine and with `--single-file` (in which case the `.m4b` has
+one chapter). Pass `--no-m4b` to skip it and keep only the per-chapter files
+in `debug/`.
+
+If ffmpeg isn't installed, the `.m4b` step is skipped automatically with a
+notice — the text and per-chapter audio in `debug/` are unaffected.
 
 Building the `.m4b` shells out to `ffmpeg`/`ffprobe`, which must be on your
 `PATH`:
@@ -150,7 +158,7 @@ book2audio/              the package
   pdf.py                 PDF text-layer / OCR extraction
   artifacts.py           header / footer / page-number detection
   pdf_clean.py           paragraph reconstruction from PDF geometry
-  tts.py                 Piper / edge-tts audio output (one file per chapter)
+  tts.py                 Piper / edge-tts audio output into debug/ (one file per chapter)
   m4b.py                 ffmpeg concat + chapter-metadata muxing into one .m4b
   models.py              dataclasses (Word, TextBlock, Page, Section, Chapter, Book)
   utils.py               text normalization helpers
