@@ -12,6 +12,7 @@ into clean text and a spoken audio file.
 - Reconstructs paragraphs from PDF blocks/lines and repairs line-end hyphenation.
 - Writes clean `debug/book.txt` plus a `debug/report.json` diagnostics file.
 - Generates `book.wav` (Piper) or `book.mp3` (edge-tts).
+- Combines the audio into one chaptered `.m4b` audiobook by default (needs ffmpeg; `--no-m4b` to skip).
 - No AI calls.
 
 ## Setup
@@ -70,6 +71,7 @@ eight. PDFs are always one file.
 | `--model PATH` | Piper `.onnx` voice model. Default: `en_US-kusal-medium.onnx`. |
 | `--voice NAME` | edge-tts voice (default: `en-US-AndrewNeural`). |
 | `--cuda` | Use the GPU for Piper (see "GPU" below). |
+| `--no-m4b` | Skip building the combined `.m4b` audiobook (see "M4B audiobook" below). On by default whenever audio is generated. |
 | `--ocr` | Force OCR on every PDF page. |
 | `--ocr-lang CODE` | Tesseract language (default: `eng`). |
 | `--header-footer-min-pages N` | Min distinct pages for a repeated header/footer. |
@@ -94,7 +96,26 @@ python book2audio.py scanned.pdf -o output --ocr --ocr-lang eng
 python book2audio.py book.pdf -o output \
   --header-footer-min-pages 5 \
   --header-footer-min-frequency 0.45
+
+# Skip the combined .m4b and keep only the per-chapter files
+python book2audio.py book.epub -o output --no-m4b
 ```
+
+## M4B audiobook
+
+Whenever audio is generated, book2audio also combines the per-chapter files
+into a single chaptered `.m4b` (each chapter file becomes one chapter marker),
+written to `output/<Book Title>.m4b`. It works with either TTS engine and with
+`--single-file` (in which case the `.m4b` has one chapter). Pass `--no-m4b` to
+skip it and keep only the per-chapter `.wav`/`.mp3` files.
+
+Building the `.m4b` shells out to `ffmpeg`/`ffprobe`, which must be on your
+`PATH`:
+
+- Windows: `winget install Gyan.FFmpeg`
+- Arch: `sudo pacman -S ffmpeg`
+- Debian/Ubuntu: `sudo apt install ffmpeg`
+- macOS: `brew install ffmpeg`
 
 ## OCR (scanned PDFs)
 
@@ -130,6 +151,7 @@ book2audio/              the package
   artifacts.py           header / footer / page-number detection
   pdf_clean.py           paragraph reconstruction from PDF geometry
   tts.py                 Piper / edge-tts audio output (one file per chapter)
+  m4b.py                 ffmpeg concat + chapter-metadata muxing into one .m4b
   models.py              dataclasses (Word, TextBlock, Page, Section, Chapter, Book)
   utils.py               text normalization helpers
 ```
@@ -155,6 +177,9 @@ PDF ──> text layer / OCR + geometry ─┤
                                      │
                                      v
                      TTS  ->  one .wav / .mp3 per chapter
+                                     │
+                                     v
+                    .m4b (ffmpeg)  ->  one chaptered audiobook (skip with --no-m4b)
 ```
 
 ## Limitations

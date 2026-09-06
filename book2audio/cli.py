@@ -3,8 +3,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .m4b import combine_to_m4b
 from .pipeline import iter_chapter_outputs, process, render_text
 from .tts import DEFAULT_EDGE_VOICE, synthesize_book
+from .utils import safe_filename
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -67,6 +69,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use CUDA GPU acceleration for Piper.",
     )
+    tts.add_argument(
+        "--m4b",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Also combine the generated audio into one chaptered .m4b audiobook "
+        "(requires ffmpeg). On by default unless --tts none; use --no-m4b to skip.",
+    )
     return p
 
 
@@ -92,12 +101,15 @@ def main(argv: list[str] | None = None) -> int:
 
     chapter_outputs = list(iter_chapter_outputs(book))
     if args.single_file or len(chapter_outputs) <= 1:
-        jobs = [("book", render_text(book))]
+        labeled_jobs = [("book", book.title or args.input.stem, render_text(book))]
     else:
-        jobs = [(stem, chapter_text) for stem, _title, chapter_text in chapter_outputs]
+        labeled_jobs = chapter_outputs
+    # synthesize_book drops blank-text jobs; filter here too so titles stay
+    # aligned with the audio paths it actually returns.
+    labeled_jobs = [(stem, title, text) for stem, title, text in labeled_jobs if text.strip()]
 
     paths = synthesize_book(
-        jobs,
+        [(stem, text) for stem, _title, text in labeled_jobs],
         args.output,
         engine=args.tts,
         model=args.model,
@@ -106,6 +118,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     for path in paths:
         print(f"Audio:    {path}")
+
+    build_m4b = args.m4b if args.m4b is not None else args.tts != "none"
+    if build_m4b:
+        if not paths:
+            raise SystemExit("--m4b requires audio output; pass --tts piper or --tts edge.")
+        titles = [title for _stem, title, _text in labeled_jobs]
+        m4b_path = args.output / f"{safe_filename(book.title or args.input.stem)}.m4b"
+        combine_to_m4b(paths, titles, m4b_path)
+        print(f"M4B:      {m4b_path}")
 
     return 0
 
