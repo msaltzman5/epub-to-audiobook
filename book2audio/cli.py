@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from .m4b import combine_to_m4b
 from .pipeline import iter_chapter_outputs, process, render_text
 from .tts import DEFAULT_EDGE_VOICE, synthesize_book
 from .utils import safe_filename
+
+_PURPLE = "\033[95m"
+_RESET = "\033[0m"
+
+
+def _highlight(text: str) -> str:
+    """Wrap ``text`` in purple ANSI codes when printing to a real terminal."""
+    return f"{_PURPLE}{text}{_RESET}" if sys.stdout.isatty() else text
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -130,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             combine_to_m4b(paths, titles, m4b_path)
         except RuntimeError as exc:
-            print(f"M4B:      skipped - {exc}")
+            print(_highlight(f"M4B:      skipped - {exc}"))
         else:
             print(f"M4B:      {m4b_path}")
             m4b_built = True
