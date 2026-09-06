@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
+from .m4b import combine_to_m4b
 from .pipeline import iter_chapter_outputs, process, render_text
 from .tts import DEFAULT_EDGE_VOICE, synthesize_book
+from .utils import safe_filename
+
+_PURPLE = "\033[95m"
+_RESET = "\033[0m"
+
+
+def _highlight(text: str) -> str:
+    """Wrap ``text`` in purple ANSI codes when printing to a real terminal."""
+    return f"{_PURPLE}{text}{_RESET}" if sys.stdout.isatty() else text
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -67,6 +78,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Use CUDA GPU acceleration for Piper.",
     )
+    tts.add_argument(
+        "--m4b",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Also combine the generated audio into one chaptered .m4b audiobook "
+        "(requires ffmpeg; skipped automatically if ffmpeg isn't found). "
+        "On by default; use --no-m4b to skip without checking for ffmpeg.",
+    )
     return p
 
 
@@ -92,18 +111,44 @@ def main(argv: list[str] | None = None) -> int:
 
     chapter_outputs = list(iter_chapter_outputs(book))
     if args.single_file or len(chapter_outputs) <= 1:
-        jobs = [("book", render_text(book))]
+        labeled_jobs = [("book", book.title or args.input.stem, render_text(book))]
     else:
-        jobs = [(stem, chapter_text) for stem, _title, chapter_text in chapter_outputs]
+        labeled_jobs = chapter_outputs
+    # synthesize_book drops blank-text jobs; filter here too so titles stay
+    # aligned with the audio paths it actually returns.
+    labeled_jobs = [(stem, title, text) for stem, title, text in labeled_jobs if text.strip()]
 
     paths = synthesize_book(
-        jobs,
-        args.output,
+        [(stem, text) for stem, _title, text in labeled_jobs],
+        args.output / "debug",
         engine=args.tts,
         model=args.model,
         voice=args.voice,
         use_cuda=args.cuda,
     )
+
+    m4b_built = False
+    if args.m4b:
+        if not paths:
+            raise SystemExit(
+                "No audio was generated, so there's nothing to combine into a .m4b. "
+                "Use --tts piper or --tts edge, or pass --no-m4b."
+            )
+        titles = [title for _stem, title, _text in labeled_jobs]
+        m4b_path = args.output / f"{safe_filename(book.title or args.input.stem)}.m4b"
+        try:
+            combine_to_m4b(paths, titles, m4b_path)
+        except RuntimeError as exc:
+            print(_highlight(f"M4B:      skipped - {exc}"))
+        else:
+            print(f"M4B:      {m4b_path}")
+            m4b_built = True
+
+    if paths and not m4b_built:
+        # No .m4b was produced, so the per-chapter audio is the deliverable --
+        # keep it in the main output directory instead of debug/.
+        paths = [path.rename(args.output / path.name) for path in paths]
+
     for path in paths:
         print(f"Audio:    {path}")
 

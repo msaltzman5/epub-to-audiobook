@@ -25,7 +25,8 @@ def process(
     Writes ``book.txt``, ``report.json`` and (for multi-chapter books) one
     ``NN - Title.txt`` per chapter into ``output_dir/debug``, then returns the
     parsed :class:`Book`. Audio generation is handled separately by
-    :func:`book2audio.tts.synthesize_book` and stays in ``output_dir`` itself.
+    :func:`book2audio.tts.synthesize_book`, which writes into
+    ``output_dir/debug`` alongside the per-chapter text.
     """
     input_path = Path(input_path)
     output_dir = Path(output_dir)

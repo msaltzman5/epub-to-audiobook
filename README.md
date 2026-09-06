@@ -12,6 +12,7 @@ into clean text and a spoken audio file.
 - Reconstructs paragraphs from PDF blocks/lines and repairs line-end hyphenation.
 - Writes clean `debug/book.txt` plus a `debug/report.json` diagnostics file.
 - Generates `book.wav` (Piper) or `book.mp3` (edge-tts).
+- Combines the audio into one chaptered `.m4b` audiobook by default (needs ffmpeg; `--no-m4b` to skip).
 - No AI calls.
 
 ## Setup
@@ -44,16 +45,20 @@ python book2audio.py book.pdf  -o output
 
 The output directory gets:
 
-- One audio file **per chapter** for EPUBs — `01 - Preface.wav`, `02 - Introduction.wav`,
-  `03 - Birth of a NERD.wav`, ... (`.mp3` with `--tts edge`).
-- A single `book.wav` when there is only one chapter (all PDFs), or when you pass
-  `--single-file`.
+- `<Book Title>.m4b` — one chaptered audiobook combining every chapter (unless
+  you pass `--no-m4b`; see "M4B audiobook" below).
 
-A `debug/` subfolder holds the text and diagnostics:
+A `debug/` subfolder holds the text, diagnostics, and the raw per-chapter audio
+that went into the `.m4b`:
 
 - `debug/book.txt` — the whole book as cleaned text.
 - `debug/report.json` — extraction and cleanup diagnostics, including the chapter list.
 - `debug/NN - Title.txt` — one per chapter, matching the per-chapter audio files.
+- One audio file **per chapter** for EPUBs — `debug/01 - Preface.wav`,
+  `debug/02 - Introduction.wav`, `debug/03 - Birth of a NERD.wav`, ... (`.mp3`
+  with `--tts edge`).
+- A single `debug/book.wav` when there is only one chapter (all PDFs), or when
+  you pass `--single-file`.
 
 Chapters come from the EPUB's table of contents. Numbered sub-entries (`I`, `II`,
 `3.`, ...) are folded into the titled part above them, so a book with parts like
@@ -70,6 +75,7 @@ eight. PDFs are always one file.
 | `--model PATH` | Piper `.onnx` voice model. Default: `en_US-kusal-medium.onnx`. |
 | `--voice NAME` | edge-tts voice (default: `en-US-AndrewNeural`). |
 | `--cuda` | Use the GPU for Piper (see "GPU" below). |
+| `--no-m4b` | Skip building the combined `.m4b` audiobook (see "M4B audiobook" below). On by default whenever audio is generated. |
 | `--ocr` | Force OCR on every PDF page. |
 | `--ocr-lang CODE` | Tesseract language (default: `eng`). |
 | `--header-footer-min-pages N` | Min distinct pages for a repeated header/footer. |
@@ -94,7 +100,30 @@ python book2audio.py scanned.pdf -o output --ocr --ocr-lang eng
 python book2audio.py book.pdf -o output \
   --header-footer-min-pages 5 \
   --header-footer-min-frequency 0.45
+
+# Skip the combined .m4b and keep only the per-chapter files
+python book2audio.py book.epub -o output --no-m4b
 ```
+
+## M4B audiobook
+
+Whenever audio is generated, book2audio also combines the per-chapter
+`debug/*.wav`/`.mp3` files into a single chaptered `.m4b` (each chapter file
+becomes one chapter marker), written to `output/<Book Title>.m4b`. It works
+with either TTS engine and with `--single-file` (in which case the `.m4b` has
+one chapter). Pass `--no-m4b` to skip it and keep only the per-chapter files
+in `debug/`.
+
+If ffmpeg isn't installed, the `.m4b` step is skipped automatically with a
+notice — the text and per-chapter audio in `debug/` are unaffected.
+
+Building the `.m4b` shells out to `ffmpeg`/`ffprobe`, which must be on your
+`PATH`:
+
+- Windows: `winget install Gyan.FFmpeg`
+- Arch: `sudo pacman -S ffmpeg`
+- Debian/Ubuntu: `sudo apt install ffmpeg`
+- macOS: `brew install ffmpeg`
 
 ## OCR (scanned PDFs)
 
@@ -129,7 +158,8 @@ book2audio/              the package
   pdf.py                 PDF text-layer / OCR extraction
   artifacts.py           header / footer / page-number detection
   pdf_clean.py           paragraph reconstruction from PDF geometry
-  tts.py                 Piper / edge-tts audio output (one file per chapter)
+  tts.py                 Piper / edge-tts audio output into debug/ (one file per chapter)
+  m4b.py                 ffmpeg concat + chapter-metadata muxing into one .m4b
   models.py              dataclasses (Word, TextBlock, Page, Section, Chapter, Book)
   utils.py               text normalization helpers
 ```
@@ -155,6 +185,9 @@ PDF ──> text layer / OCR + geometry ─┤
                                      │
                                      v
                      TTS  ->  one .wav / .mp3 per chapter
+                                     │
+                                     v
+                    .m4b (ffmpeg)  ->  one chaptered audiobook (skip with --no-m4b)
 ```
 
 ## Limitations
