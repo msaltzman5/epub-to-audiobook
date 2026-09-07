@@ -28,13 +28,9 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-The default Piper voice model (`en_US-kusal-medium.onnx`) is included in this
-repo. To use a different one:
-
-```bash
-python -m piper.download_voices en_US-lessac-medium
-# then pass it with:  --model en_US-lessac-medium.onnx
-```
+Piper voice models live in `piper-voices/` (gitignored — you fetch it yourself;
+see "Piper voices" below). The default voice is `en_US-kusal-medium`; pass
+`--model <name>` to use a different one, e.g. `--model en_US-lessac-high`.
 
 ## Usage
 
@@ -72,7 +68,7 @@ eight. PDFs are always one file.
 | `-o, --output DIR` | Output directory (default: `./output`). |
 | `--tts {piper,edge,none}` | TTS engine. `none` writes text only. Default: `piper`. |
 | `--single-file` | One audio file for the whole book instead of one per chapter. |
-| `--model PATH` | Piper `.onnx` voice model. Default: `en_US-kusal-medium.onnx`. |
+| `--model NAME\|PATH` | Piper voice: a short name resolved in `piper-voices/` (e.g. `en_US-lessac-medium`), or a path to an `.onnx` file. Default: `en_US-kusal-medium`. |
 | `--voice NAME` | edge-tts voice (default: `en-US-AndrewNeural`). |
 | `--cuda` | Use the GPU for Piper (see "GPU" below). |
 | `--no-m4b` | Skip building the combined `.m4b` audiobook (see "M4B audiobook" below). On by default whenever audio is generated. |
@@ -147,6 +143,71 @@ pip install onnxruntime-gpu
 The GPU build is version-sensitive to your installed CUDA toolkit; see
 https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html#requirements
 
+## Piper voices
+
+Piper models are fetched into `piper-voices/` from the
+[`rhasspy/piper-voices`](https://huggingface.co/rhasspy/piper-voices) dataset on
+Hugging Face. That directory is gitignored — it's a local cache you populate
+yourself, not something committed to the repo.
+
+`--model` takes a short voice name (e.g. `en_US-lessac-high`) and resolves it
+to `piper-voices/en/en_US/lessac/high/en_US-lessac-high.onnx` automatically. A
+real file path still works too, for a model kept outside `piper-voices/`.
+
+### Setting up the Hugging Face CLI
+
+The `hf` command comes from the `huggingface_hub` Python package. It's the
+same package everywhere, but how you install it without fighting your system
+Python differs by platform:
+
+- Windows: `pip install -U "huggingface_hub[cli]"` (run inside the project's
+  `.venv`, or use `pip`/`pip3` globally if you're not in a venv).
+- macOS: `pip3 install -U "huggingface_hub[cli]"`, or
+  `brew install pipx && pipx install "huggingface_hub[cli]"` for an isolated
+  install.
+- Debian/Ubuntu: system Python blocks plain `pip install` outside a venv
+  (PEP 668). Either run it inside `.venv`, or:
+  `sudo apt install pipx && pipx install "huggingface_hub[cli]"`.
+- Arch: same PEP 668 restriction —
+  `sudo pacman -S python-pipx && pipx install "huggingface_hub[cli]"`, or
+  install inside `.venv`.
+
+Verify with `hf --version`. (Older installs may only have the previous name,
+`huggingface-cli` — swap `hf download` for `huggingface-cli download` below if
+so.) The `rhasspy/piper-voices` dataset is public, so no login/token is
+needed.
+
+### Cloning voices
+
+This repo currently uses these voices, fetched with:
+
+```bash
+hf download rhasspy/piper-voices \
+  --include "en/en_US/kusal/*" "en/en_US/lessac/*" "en/en_US/libritts/*" \
+            "en/en_US/ljspeech/*" "en/en_US/norman/*" \
+  --local-dir piper-voices
+```
+
+| `--model` name | Voice | Quality |
+|---|---|---|
+| `en_US-kusal-medium` | kusal | medium (**default**) |
+| `en_US-lessac-low` / `-medium` / `-high` | lessac | low, medium, high |
+| `en_US-libritts-high` | libritts | high |
+| `en_US-ljspeech-medium` / `-high` | ljspeech | medium, high |
+| `en_US-norman-medium` | norman | medium |
+
+To add another voice or quality tier, browse
+https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US for what's
+available and re-run `hf download` with more `--include` patterns (it skips
+files you already have), e.g.:
+
+```bash
+hf download rhasspy/piper-voices --include "en/en_US/amy/*" --local-dir piper-voices
+```
+
+Then use it with `--model en_US-amy-medium` (matching whatever quality tier
+you fetched).
+
 ## Project layout
 
 ```
@@ -162,6 +223,7 @@ book2audio/              the package
   m4b.py                 ffmpeg concat + chapter-metadata muxing into one .m4b
   models.py              dataclasses (Word, TextBlock, Page, Section, Chapter, Book)
   utils.py               text normalization helpers
+piper-voices/             gitignored; Piper voice models (see "Piper voices")
 ```
 
 Pipeline:
