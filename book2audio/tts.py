@@ -10,8 +10,8 @@ import asyncio
 import wave
 from pathlib import Path
 
-# Piper voice model shipped in the project root.
-DEFAULT_PIPER_MODEL = "en_US-kusal-medium.onnx"
+# Default Piper voice, resolved inside piper-voices/ (see README "Piper voices").
+DEFAULT_PIPER_MODEL = "en_US-kusal-medium"
 # A reasonable default edge-tts voice.
 DEFAULT_EDGE_VOICE = "en-US-AndrewNeural"
 
@@ -23,6 +23,9 @@ PIPER_CHARS_PER_SEC = 180
 EDGE_CHARS_PER_SEC = 1500
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Local, gitignored clone of https://huggingface.co/rhasspy/piper-voices
+# (see README "Piper voices" for how to populate/extend it).
+PIPER_VOICES_DIR = _PROJECT_ROOT / "piper-voices"
 
 # One (file_stem, text) pair per output audio file.
 Job = tuple[str, str]
@@ -75,14 +78,40 @@ def format_duration(seconds: float) -> str:
     return f"{secs}s"
 
 
+def _voice_dir(name: str) -> Path:
+    """Where ``name`` (e.g. ``en_US-lessac-medium``) lives under piper-voices/."""
+    lang_region, voice, quality = name.split("-")
+    lang = lang_region.split("_")[0]
+    return PIPER_VOICES_DIR / lang / lang_region / voice / quality
+
+
 def _resolve_model(model: str | Path | None) -> Path:
-    path = Path(model) if model else _PROJECT_ROOT / DEFAULT_PIPER_MODEL
-    if not path.exists():
+    """Resolve ``model`` to an .onnx file.
+
+    Accepts an explicit path (checked first, so models outside the repo still
+    work), or a short Piper voice name like ``en_US-lessac-medium`` that gets
+    looked up inside piper-voices/ (see README "Piper voices").
+    """
+    model = model or DEFAULT_PIPER_MODEL
+    path = Path(model)
+    if path.exists():
+        return path
+
+    name = path.name.removesuffix(".onnx")
+    try:
+        path = _voice_dir(name) / f"{name}.onnx"
+    except ValueError:
+        path = None
+
+    if path is None or not path.exists():
         raise FileNotFoundError(
-            f"Piper voice model not found: {path}\n"
-            "Download one with:\n"
-            "    python -m piper.download_voices en_US-kusal-medium\n"
-            "or pass a path with --model /path/to/voice.onnx"
+            f"Piper voice model not found: {model!r}\n"
+            f"Looked for that as a path, and for '{name}.onnx' under {PIPER_VOICES_DIR}\n\n"
+            "Fetch voices with the Hugging Face CLI, e.g. to get the default voice:\n"
+            '    hf download rhasspy/piper-voices --include "en/en_US/kusal/*" '
+            "--local-dir piper-voices\n"
+            'See "Piper voices" in README.md for the full list of options and setup.\n'
+            "Or pass an existing file with --model /path/to/voice.onnx"
         )
     return path
 

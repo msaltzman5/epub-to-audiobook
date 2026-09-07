@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .m4b import combine_to_m4b
 from .pipeline import iter_chapter_outputs, process, render_text
-from .tts import DEFAULT_EDGE_VOICE, synthesize_book
+from .tts import DEFAULT_EDGE_VOICE, DEFAULT_PIPER_MODEL, synthesize_book
 from .utils import safe_filename
 
 _PURPLE = "\033[95m"
@@ -66,7 +66,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--model",
         type=Path,
         default=None,
-        help="Piper .onnx voice model (default: en_US-kusal-medium.onnx in the project root).",
+        help="Piper voice: a short name resolved inside piper-voices/ (e.g. "
+        "en_US-lessac-medium), or a path to an .onnx file. "
+        f"Default: {DEFAULT_PIPER_MODEL}. See README 'Piper voices' for the full list.",
     )
     tts.add_argument(
         "--voice",
